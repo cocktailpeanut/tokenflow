@@ -92,7 +92,7 @@ class Preprocess(nn.Module):
     def prepare_depth_maps(self, model_type='DPT_Large', device='cuda'):
         depth_maps = []
         midas = torch.hub.load("intel-isl/MiDaS", model_type)
-        midas.to(device)
+        midas.to(self.device)
         midas.eval()
 
         midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
@@ -109,7 +109,7 @@ class Preprocess(nn.Module):
             latent_h = img.shape[0] // 8
             latent_w = img.shape[1] // 8
             
-            input_batch = transform(img).to(device)
+            input_batch = transform(img).to(self.device)
             prediction = midas(input_batch)
 
             depth_map = torch.nn.functional.interpolate(
@@ -167,10 +167,10 @@ class Preprocess(nn.Module):
     def get_text_embeds(self, prompt, negative_prompt, device="cuda"):
         text_input = self.tokenizer(prompt, padding='max_length', max_length=self.tokenizer.model_max_length,
                                     truncation=True, return_tensors='pt')
-        text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0]
+        text_embeddings = self.text_encoder(text_input.input_ids.to(self.device))[0]
         uncond_input = self.tokenizer(negative_prompt, padding='max_length', max_length=self.tokenizer.model_max_length,
                                       return_tensors='pt')
-        uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(device))[0]
+        uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(self.device))[0]
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
         return text_embeddings
 
@@ -328,48 +328,4 @@ class Preprocess(nn.Module):
 
         return self.frames, self.latents, self.total_inverted_latents, None
 
-
-def prep(opt):
-    # timesteps to save
-    if opt["sd_version"] == '2.1':
-        model_key = "stabilityai/stable-diffusion-2-1-base"
-    elif opt["sd_version"] == '2.0':
-        model_key = "stabilityai/stable-diffusion-2-base"
-    elif opt["sd_version"] == '1.5' or opt["sd_version"] == 'ControlNet':
-        model_key = "runwayml/stable-diffusion-v1-5"
-    elif opt["sd_version"] == 'depth':
-        model_key = "stabilityai/stable-diffusion-2-depth"
-    toy_scheduler = DDIMScheduler.from_pretrained(model_key, subfolder="scheduler")
-    toy_scheduler.set_timesteps(opt["save_steps"])
-    timesteps_to_save, num_inference_steps = get_timesteps(toy_scheduler, num_inference_steps=opt["save_steps"],
-                                                           strength=1.0,
-                                                           device=device)
-
-    seed_everything(opt["seed"])
-    if not opt["frames"]: # original non demo setting
-        save_path = os.path.join(opt["save_dir"],
-                                 f'sd_{opt["sd_version"]}',
-                                 Path(opt["data_path"]).stem,
-                                 f'steps_{opt["steps"]}',
-                                 f'nframes_{opt["n_frames"]}') 
-        os.makedirs(os.path.join(save_path, f'latents'), exist_ok=True)
-        add_dict_to_yaml_file(os.path.join(opt["save_dir"], 'inversion_prompts.yaml'), Path(opt["data_path"]).stem, opt["inversion_prompt"])    
-        # save inversion prompt in a txt file
-        with open(os.path.join(save_path, 'inversion_prompt.txt'), 'w') as f:
-            f.write(opt["inversion_prompt"])
-    else:
-        save_path = None
-    
-    model = Preprocess(device, opt)
-  
-    frames, latents, total_inverted_latents, rgb_reconstruction = model.extract_latents(
-                                         num_steps=model.config["steps"],
-                                         save_path=save_path,
-                                         batch_size=model.config["batch_size"],
-                                         timesteps_to_save=timesteps_to_save,
-                                         inversion_prompt=model.config["inversion_prompt"],
-    )
-
-    
-    return frames, latents, total_inverted_latents, rgb_reconstruction
 

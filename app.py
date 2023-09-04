@@ -7,7 +7,13 @@ from tokenflow_pnp import TokenFlow
 from preprocess_utils import *
 from tokenflow_utils import *
 # load sd model
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
 model_id = "stabilityai/stable-diffusion-2-1-base"
 
 # components for the Preprocessor
@@ -21,7 +27,7 @@ unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet", revision
                                            torch_dtype=torch.float16).to(device)
 
 # pipe for TokenFlow
-tokenflow_pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16).to("cuda")
+tokenflow_pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16).to(device)
 tokenflow_pipe.enable_xformers_memory_efficient_attention()
 
 def randomize_seed_fn():

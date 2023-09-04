@@ -78,7 +78,7 @@ class TokenFlow(nn.Module):
     def prepare_depth_maps(self, model_type='DPT_Large', device='cuda'):
         depth_maps = []
         midas = torch.hub.load("intel-isl/MiDaS", model_type)
-        midas.to(device)
+        midas.to(self.device)
         midas.eval()
 
         midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
@@ -95,7 +95,7 @@ class TokenFlow(nn.Module):
             latent_h = img.shape[0] // 8
             latent_w = img.shape[1] // 8
             
-            input_batch = transform(img).to(device)
+            input_batch = transform(img).to(self.device)
             prediction = midas(input_batch)
 
             depth_map = torch.nn.functional.interpolate(
