@@ -28,7 +28,8 @@ unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet", revision
 
 # pipe for TokenFlow
 tokenflow_pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16).to(device)
-tokenflow_pipe.enable_xformers_memory_efficient_attention()
+if device == "cuda":
+    tokenflow_pipe.enable_xformers_memory_efficient_attention()
 
 def randomize_seed_fn():
     seed = random.randint(0, np.iinfo(np.int32).max)
