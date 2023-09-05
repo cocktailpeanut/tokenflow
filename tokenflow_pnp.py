@@ -1,4 +1,3 @@
-import torch
 import glob
 import os
 import numpy as np
@@ -28,7 +27,7 @@ elif torch.backends.mps.is_available():
     device = "mps"
 else:
     device = "cpu"
-to = torch.float16 if self.device == 'cuda' else torch.float32
+to = torch.float16 if device == 'cuda' else torch.float32
 
 class TokenFlow(nn.Module):
     def __init__(self, config, 
