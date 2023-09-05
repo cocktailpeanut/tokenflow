@@ -275,7 +275,7 @@ class TokenFlow(nn.Module):
         denoised_latent = self.scheduler.step(noise_pred, t, x)['prev_sample']
         return denoised_latent
     
-    @torch.autocast(dtype=self.to, device_type=device)
+    @torch.autocast(dtype=to, device_type=device)
     def batched_denoise_step(self, x, t, indices):
         batch_size = self.config["batch_size"]
         denoised_latents = []
