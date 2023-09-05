@@ -16,7 +16,7 @@ else:
     device = "cpu"
 model_id = "stabilityai/stable-diffusion-2-1-base"
 
-to = torch.float16 if self.device == 'cuda' else torch.float32
+to = torch.float16 if device == 'cuda' else torch.float32
 
 # components for the Preprocessor
 scheduler = DDIMScheduler.from_pretrained(model_id, subfolder="scheduler")
