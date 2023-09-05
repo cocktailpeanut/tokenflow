@@ -1,3 +1,4 @@
+import torch
 import glob
 import os
 import numpy as np
@@ -21,6 +22,12 @@ logging.set_verbosity_error()
 
 VAE_BATCH_SIZE = 10
 
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
 
 class TokenFlow(nn.Module):
     def __init__(self, config, 
@@ -31,6 +38,7 @@ class TokenFlow(nn.Module):
         super().__init__()
         self.config = config
         self.device = config["device"]
+        self.to = torch.float16 if self.device == 'cuda' else torch.float32
         
         sd_version = config["sd_version"]
         self.sd_version = sd_version
@@ -109,7 +117,7 @@ class TokenFlow(nn.Module):
             depth_map = 2.0 * (depth_map - depth_min) / (depth_max - depth_min) - 1.0
             depth_maps.append(depth_map)
 
-        return torch.cat(depth_maps).to(torch.float16).to(self.device)
+        return torch.cat(depth_maps).to(self.to).to(self.device)
     
     def get_pnp_inversion_prompt(self):
         inv_prompts_path = os.path.join(str(Path(self.latents_path).parent), 'inversion_prompt.txt')
@@ -197,16 +205,16 @@ class TokenFlow(nn.Module):
             frames = [Image.open(paths[idx]).convert('RGB') for idx in range(self.config["n_frames"])]
             if frames[0].size[0] == frames[0].size[1]:
                 frames = [frame.resize((512, 512), resample=Image.Resampling.LANCZOS) for frame in frames]
-            frames = torch.stack([T.ToTensor()(frame) for frame in frames]).to(torch.float16).to(self.device)
+            frames = torch.stack([T.ToTensor()(frame) for frame in frames]).to(self.to).to(self.device)
             save_video(frames, f'{self.config["output_path"]}/input_fps10.mp4', fps=10)
             save_video(frames, f'{self.config["output_path"]}/input_fps20.mp4', fps=20)
             save_video(frames, f'{self.config["output_path"]}/input_fps30.mp4', fps=30)
         else:
             frames = self.frames
         # encode to latents
-        latents = self.encode_imgs(frames, deterministic=True).to(torch.float16).to(self.device)
+        latents = self.encode_imgs(frames, deterministic=True).to(self.to).to(self.device)
         # get noise
-        eps = self.get_ddim_eps(latents, range(self.config["n_frames"])).to(torch.float16).to(self.device)
+        eps = self.get_ddim_eps(latents, range(self.config["n_frames"])).to(self.to).to(self.device)
         if not read_from_files:
             return None, frames, latents, eps
         return paths, frames, latents, eps
@@ -267,7 +275,7 @@ class TokenFlow(nn.Module):
         denoised_latent = self.scheduler.step(noise_pred, t, x)['prev_sample']
         return denoised_latent
     
-    @torch.autocast(dtype=torch.float16, device_type='cuda')
+    @torch.autocast(dtype=self.to, device_type=device)
     def batched_denoise_step(self, x, t, indices):
         batch_size = self.config["batch_size"]
         denoised_latents = []

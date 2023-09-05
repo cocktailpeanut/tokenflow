@@ -29,6 +29,7 @@ class Preprocess(nn.Module):
         super().__init__()
 
         self.device = device
+        self.to = torch.float16 if self.device == 'cuda' else torch.float32
         self.sd_version = opt["sd_version"]
         self.use_depth = False
         self.config = opt
@@ -73,9 +74,9 @@ class Preprocess(nn.Module):
         
         if self.sd_version == 'ControlNet':
             from diffusers import ControlNetModel, StableDiffusionControlNetPipeline
-            controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16).to(self.device)
+            controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=self.to).to(self.device)
             control_pipe = StableDiffusionControlNetPipeline.from_pretrained(
-                "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16
+                "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=self.to
             ).to(self.device)
             self.unet = control_pipe.unet
             self.controlnet = control_pipe.controlnet
@@ -124,7 +125,7 @@ class Preprocess(nn.Module):
             depth_map = 2.0 * (depth_map - depth_min) / (depth_max - depth_min) - 1.0
             depth_maps.append(depth_map)
 
-        return torch.cat(depth_maps).to(self.device).to(torch.float16)
+        return torch.cat(depth_maps).to(self.device).to(self.to)
     
     @torch.no_grad()
     def get_canny_cond(self):
@@ -139,7 +140,7 @@ class Preprocess(nn.Module):
             image = np.concatenate([image, image, image], axis=2)
             image = torch.from_numpy((image.astype(np.float32) / 255.0))
             canny_cond.append(image)
-        canny_cond = torch.stack(canny_cond).permute(0, 3, 1, 2).to(self.device).to(torch.float16)
+        canny_cond = torch.stack(canny_cond).permute(0, 3, 1, 2).to(self.device).to(self.to)
         return canny_cond
     
     def controlnet_pred(self, latent_model_input, t, text_embed_input, controlnet_cond):
@@ -211,9 +212,9 @@ class Preprocess(nn.Module):
                 frames = [frame.resize((512, 512), resample=Image.Resampling.LANCZOS) for frame in frames]
         else:
             frames = self.config["frames"][:n_frames]
-        frames = torch.stack([T.ToTensor()(frame) for frame in frames]).to(torch.float16).to(self.device)
+        frames = torch.stack([T.ToTensor()(frame) for frame in frames]).to(self.to).to(self.device)
         # encode to latents
-        latents = self.encode_imgs(frames, deterministic=True).to(torch.float16).to(self.device)
+        latents = self.encode_imgs(frames, deterministic=True).to(self.to).to(self.device)
         print("frames", frames.shape)
         print("latents", latents.shape)
         

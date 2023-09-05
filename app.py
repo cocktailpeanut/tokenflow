@@ -16,18 +16,20 @@ else:
     device = "cpu"
 model_id = "stabilityai/stable-diffusion-2-1-base"
 
+to = torch.float16 if self.device == 'cuda' else torch.float32
+
 # components for the Preprocessor
 scheduler = DDIMScheduler.from_pretrained(model_id, subfolder="scheduler")
 vae = AutoencoderKL.from_pretrained(model_id, subfolder="vae", revision="fp16",
-                                                 torch_dtype=torch.float16).to(device)
+                                                 torch_dtype=to).to(device)
 tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder="tokenizer")
 text_encoder = CLIPTextModel.from_pretrained(model_id, subfolder="text_encoder", revision="fp16",
-                                                  torch_dtype=torch.float16).to(device)
+                                                  torch_dtype=to).to(device)
 unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet", revision="fp16",
-                                           torch_dtype=torch.float16).to(device)
+                                           torch_dtype=to).to(device)
 
 # pipe for TokenFlow
-tokenflow_pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16).to(device)
+tokenflow_pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=to).to(device)
 if device == "cuda":
     tokenflow_pipe.enable_xformers_memory_efficient_attention()
 
