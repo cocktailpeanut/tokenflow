@@ -11,4 +11,3 @@ xformers
 tensorboard
 kornia
 av
-torchvision==0.15.2
