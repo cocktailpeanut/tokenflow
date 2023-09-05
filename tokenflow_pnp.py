@@ -28,6 +28,7 @@ elif torch.backends.mps.is_available():
     device = "mps"
 else:
     device = "cpu"
+to = torch.float16 if self.device == 'cuda' else torch.float32
 
 class TokenFlow(nn.Module):
     def __init__(self, config, 
@@ -117,7 +118,7 @@ class TokenFlow(nn.Module):
             depth_map = 2.0 * (depth_map - depth_min) / (depth_max - depth_min) - 1.0
             depth_maps.append(depth_map)
 
-        return torch.cat(depth_maps).to(self.to).to(self.device)
+        return torch.cat(depth_maps).to(to).to(self.device)
     
     def get_pnp_inversion_prompt(self):
         inv_prompts_path = os.path.join(str(Path(self.latents_path).parent), 'inversion_prompt.txt')
