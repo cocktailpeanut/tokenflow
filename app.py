@@ -284,7 +284,7 @@ with gr.Blocks(css="style.css") as demo:
                         gudiance_scale = gr.Slider(label='Guidance Scale', minimum=1, maximum=30,
                                               value=7.5, step=0.5, interactive=True)
                         steps = gr.Slider(label='Inversion steps', minimum=10, maximum=500,
-                                              value=500, step=1, interactive=True)
+                                              value=200, step=1, interactive=True)
                         
                     with gr.Column(min_width=100):
                         inversion_prompt = gr.Textbox(lines=1, label="Inversion prompt", interactive=True, placeholder="")
@@ -293,7 +293,7 @@ with gr.Blocks(css="style.css") as demo:
                         n_frames = gr.Slider(label='Num frames', minimum=2, maximum=200,
                                               value=24, step=1, interactive=True)
                         n_timesteps = gr.Slider(label='Diffusion steps', minimum=25, maximum=100,
-                                              value=50, step=25, interactive=True)
+                                              value=25, step=25, interactive=True)
                         n_fps = gr.Slider(label='Frames per second', minimum=1, maximum=60,
                                               value=10, step=1, interactive=True)
                         
