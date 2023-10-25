@@ -1,5 +1,5 @@
 pillow
-diffusers
+diffusers==0.20.0
 ftfy
 transformers
 opencv-python 
@@ -7,7 +7,7 @@ tqdm
 numpy
 pyyaml
 accelerate
-xformers
 tensorboard
 kornia
 av
+gradio==3.41.2
